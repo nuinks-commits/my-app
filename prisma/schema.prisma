@@ -1,0 +1,182 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  TEACHER
+  PARENT
+}
+
+enum EnrollmentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  WITHDRAWN
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  hashedPassword String
+  role           Role
+  firstName      String
+  lastName       String
+  phone          String?
+  familyId       String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  family         Family?   @relation(fields: [familyId], references: [id])
+  messagesSent   Message[] @relation("SentMessages")
+  messagesReceived Message[] @relation("ReceivedMessages")
+  lessons        Lesson[]
+  socialPosts    SocialPost[]
+  classrooms     Classroom[] @relation("TeacherClassroom")
+}
+
+model Family {
+  id            String    @id @default(cuid())
+  subsidyStatus Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  members       User[]
+  children      Child[]
+  payments      Payment[]
+}
+
+model Child {
+  id           String   @id @default(cuid())
+  firstName    String
+  lastName     String
+  birthDate    DateTime
+  allergies    String?
+  familyId     String
+  classroomId  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  family       Family   @relation(fields: [familyId], references: [id])
+  classroom    Classroom? @relation(fields: [classroomId], references: [id])
+  enrollments  Enrollment[]
+  messages     Message[]
+}
+
+model Classroom {
+  id        String    @id @default(cuid())
+  name      String
+  teacherId String?
+  capacity  Int
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  teacher   User?     @relation("TeacherClassroom", fields: [teacherId], references: [id])
+  children  Child[]
+  lessons   Lesson[]
+}
+
+model Enrollment {
+  id           String         @id @default(cuid())
+  childId      String
+  status       EnrollmentStatus @default(PENDING)
+  enrolledDate DateTime       @default(now())
+  withdrawnDate DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  child        Child          @relation(fields: [childId], references: [id])
+}
+
+model Payment {
+  id              String       @id @default(cuid())
+  familyId        String
+  amount          Float
+  status          PaymentStatus @default(PENDING)
+  dueDate         DateTime
+  paidDate        DateTime?
+  stripeInvoiceId String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  family          Family       @relation(fields: [familyId], references: [id])
+}
+
+model Lesson {
+  id          String   @id @default(cuid())
+  classroomId String
+  date        DateTime
+  teacherId   String
+  subject     String
+  objective   String
+  activity    String
+  bibleVerse  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  classroom   Classroom @relation(fields: [classroomId], references: [id])
+  teacher     User     @relation(fields: [teacherId], references: [id])
+}
+
+model Message {
+  id          String   @id @default(cuid())
+  fromUserId  String
+  toUserId    String
+  childId     String?
+  content     String
+  readAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  fromUser    User     @relation("SentMessages", fields: [fromUserId], references: [id])
+  toUser      User     @relation("ReceivedMessages", fields: [toUserId], references: [id])
+  child       Child?   @relation(fields: [childId], references: [id])
+}
+
+model SocialPost {
+  id          String   @id @default(cuid())
+  createdBy   String
+  platform    String
+  caption     String
+  mediaUrl    String?
+  scheduledDate DateTime
+  publishedDate DateTime?
+  category    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  author      User     @relation(fields: [createdBy], references: [id])
+}
+
+model MarketingCampaign {
+  id          String   @id @default(cuid())
+  name        String
+  type        String
+  audience    String
+  startDate   DateTime
+  endDate     DateTime
+  templateId  String
+  sentAt      DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model LunchMenu {
+  id          String   @id @default(cuid())
+  date        DateTime
+  mealType    String
+  description String
+  allergens   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
